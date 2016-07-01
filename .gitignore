@@ -1,0 +1,7 @@
+#ignore everything
+*
+
+#but not these
+!.gitignore
+!driver_bothwd_he.py
+!MCMCfit.py
