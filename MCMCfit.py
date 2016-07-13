@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from matplotlib import pyplot
 import emcee
 #import triangle
@@ -70,7 +70,7 @@ class fitfunc():
         si = flatten(sigma)
         fu = flatten(func(x,ps))
         OC = [o - f for (o,f) in zip(ob,fu)]
-        return numpy.sum([o**2./s**2. for (o,s) in zip(OC,si)])
+        return np.sum([o**2./s**2. for (o,s) in zip(OC,si)])
     
 #reduced chi^2
     def chi2_red(self, ps, args):
@@ -80,7 +80,7 @@ class fitfunc():
         fu = flatten(func(x,ps))
         OC = [o - f for (o,f) in zip(ob,fu)]
         dof = len(ob) - len(ps)
-        return numpy.sum([o**2./s**2. for (o,s) in zip(OC,si)])/dof
+        return np.sum([o**2./s**2. for (o,s) in zip(OC,si)])/dof
 
 #chi^2 as a list for the least squares fit
     def chi2list(self, ps, args):
@@ -94,7 +94,7 @@ class fitfunc():
 #draw initial walkers from the covariance matrix given by the least squares fit
     def getwalkers(self, fit_results, walkers, n=1000):
         best,cov=fit_results[:2]
-        pInits = numpy.random.multivariate_normal(best,cov*n,self.Nwalkers)
+        pInits = np.random.multivariate_normal(best,cov*n,self.Nwalkers)
         for j,p in enumerate(pInits):
             for i,a in enumerate(p):
                 if (a > self.bnds[i][1] or a < self.bnds[i][0]):
@@ -106,9 +106,9 @@ class fitfunc():
         initPosT = []
 # I found it easier to select the parameters first this way...
         for i,p in enumerate(self.params):
-            initPosT.append([x*(self.bnds[i][1]-self.bnds[i][0]) + self.bnds[i][0] for x in numpy.random.random(self.Nwalkers)])
+            initPosT.append([x*(self.bnds[i][1]-self.bnds[i][0]) + self.bnds[i][0] for x in np.random.random(self.Nwalkers)])
 #...and then transpose this matrix so that I can get an array of guesses
-        initPos = numpy.matrix.transpose(numpy.array(initPosT))
+        initPos = np.matrix.transpose(np.array(initPosT))
         return initPos
 
     
@@ -119,17 +119,17 @@ class fitfunc():
 
 
     def gauss(self, x,m,s):
-#        return 1./(s*(2.*numpy.pi)**2.)*numpy.exp(-1.*(x - m)**2./(2.*s**2.))
-        return numpy.exp(-1.*(x - m)**2./(2.*s**2.)) #don't want the normalization because we want a peak at 1
+#        return 1./(s*(2.*np.pi)**2.)*np.exp(-1.*(x - m)**2./(2.*s**2.))
+        return np.exp(-1.*(x - m)**2./(2.*s**2.)) #don't want the normalization because we want a peak at 1
     def lnprior(self, ps):
         if (self.bndsprior):
             lp = 0. #ln(1)
             for i,p in enumerate(ps):
                 if (p < self.bnds[i][0] or p > self.bnds[i][1]):
 #doing this doesn't allow some walkers to advance.  
-                    return -numpy.inf #ln(0)
+                    return -np.inf #ln(0)
 #it works better if we have some very small number
-#                    return numpy.log(1.e-3)
+#                    return np.log(1.e-3)
 #though probably the most realistic thing would be to have some Gaussian priors
 #we'd want to create inputs in this class and set them in the driver, but just an example here
 #                mn = (self.bnds[i][0] + self.bnds[i][1])/2.
@@ -140,9 +140,9 @@ class fitfunc():
                     si = self.eparams[i]
                     g = self.gauss(p, mn, si)
                     if (g > 0): #safety check
-                        lp += numpy.log(g)
+                        lp += np.log(g)
                     else:
-                        return -numpy.inf
+                        return -np.inf
 
         return 0. #ln(1)
 
@@ -152,14 +152,14 @@ class fitfunc():
 #        if (self.bndsprior):
 #            for i,p in enumerate(ps):
 #                if (p < self.bnds[i][0] or p > self.bnds[0][1]):
-#                    return -numpy.inf #ln(0)
+#                    return -np.inf #ln(0)
 #        return 0. #ln(1)
 
 #now construct the probability as priors*likelihood (but again in the log)
     def lnprob(self, ps, args):
         lp = self.lnprior(ps)
-        if not numpy.isfinite(lp):
-            return -numpy.inf
+        if not np.isfinite(lp):
+            return -np.inf
         return lp + self.lnlike(ps, args)
 
 #plot the chains
@@ -221,16 +221,16 @@ class fitfunc():
 
             fits["params"].append(fres[0])
 
-        ibest = numpy.nanargmin(fits["chi2"])
+        ibest = np.nanargmin(fits["chi2"])
 #only select the best fit of these that fall within the bounds (if that exists)
 #does this if statement really work?
-        if (len(numpy.where(numpy.array(fits["chi2_bnds"]) < 1.e20)[0]) > 0):
-            ibest = numpy.nanargmin(fits["chi2_bnds"])
+        if (len(np.where(np.array(fits["chi2_bnds"]) < 1.e20)[0]) > 0):
+            ibest = np.nanargmin(fits["chi2_bnds"])
             print ""
             print "found leastsq fit within bounds"
             inbounds = True
         else:
-            ibest = numpy.nanargmin(fits["chi2"])
+            ibest = np.nanargmin(fits["chi2"])
             print ""
             print "no leastsq fit within the bounds"
             inbounds = False
@@ -258,7 +258,7 @@ class fitfunc():
             error = [] 
             for i in range(len(self.params)):
                 try:
-                    error.append( numpy.absolute(pcov[i][i])**0.5)
+                    error.append( np.absolute(pcov[i][i])**0.5)
                 except:
                     error.append( 0.00 )
         else:
@@ -331,7 +331,11 @@ class fitfunc():
             samples = sampler.chain[:, self.Nburn:, :].reshape((-1, len(self.params)))
 
 #print the results
-            pout = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*numpy.percentile(samples, [self.pr_lo, self.pr_mi, self.pr_hi], axis=0)))
+            pout = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(samples, [self.pr_lo, self.pr_mi, self.pr_hi], axis=0)))
+            print "Acceptance fractions:"
+            print(sampler.acceptance_fraction)
+            print "Estimated autocorrelation time:"
+            print(sampler.acor)
             for i,p in enumerate(pout):
                 name = " "
                 if (len(self.params_name) >= i):
@@ -346,6 +350,7 @@ class fitfunc():
                         ofile.write("%15.7e " % p,)
                     ofile.write("\n")
                 ofile.close()
+
 
 #plot the results
             if (self.doplots):
@@ -423,7 +428,7 @@ class fitfunc():
 
 ####################################################################################################
 if __name__=="__main__":
-    numpy.random.seed(seed = 1234567)
+    np.random.seed(seed = 1234567)
 
 
 
@@ -455,7 +460,7 @@ if __name__=="__main__":
             E.append((x+1.)/Nvals)
             L.append((y+1.)/Nvals)
             N.append(3.)
-            nl = noise_lvl*numpy.random.randn()
+            nl = noise_lvl*np.random.randn()
             eP.append(nl)
             P.append( fPcoll( ((x+1.)/Nvals,(y+1.)/Nvals,3), ps) + nl )
 
