@@ -5,3 +5,4 @@
 !.gitignore
 !driver_bothwd_he.py
 !MCMCfit.py
+!driver_bothwd_he_thread_newinit.py
