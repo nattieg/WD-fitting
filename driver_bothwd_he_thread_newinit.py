@@ -27,8 +27,8 @@ Grav = 6.6743e-8 #cgs
 
 #these are various contols for the MCMC
 Nemcee = 700
-Nthin = 1
-Nburn = 50
+Nthin = 5
+Nburn = 25
 Nwalkers = 300
 bndsprior = True
 #I also set bndsprior = True in MCMCfit.py. 
@@ -63,6 +63,8 @@ def wdparams(wave, ps, ifunc):
     if (ifunc==interpfunc1):
     	findR_He = interpRo_He(np.array([modg,modT]))[0]
     	modrad = findR_He * Rsun
+        if (findR_He==0.):
+            print "WE HAVE A PROBLEM"
     elif (ifunc==interpfunc2):
     	findR = interpRo(np.array([modg,modT]))[0]
     	modrad = findR * Rsun
