@@ -11,7 +11,7 @@ from matplotlib import pyplot
 import seaborn
 import multiprocessing as multi
 #Nthreads = multi.cpu_count() - 2
-Nthreads = 5
+Nthreads = 4
 
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator 
@@ -438,8 +438,8 @@ def dofit():
     vars = (vars1, vars2)
     vals = (vals1, vals2)
     evals = (evals1, evals2)
-    args = (vars,  vals, evals, func)
-
+    args = (vars, vals, evals, func)
+    
     if (doMCMC):
 
 #OK now choose the walkers for the MCMC
@@ -447,7 +447,7 @@ def dofit():
         for i in xrange(0, Nwalkers):
             for j in xrange(0, len(params)):
                 #p0[i][j] = params[j]*np.random.uniform(0.95,1.05,1)
-                p0[i][j] = np.random.normal(loc=params[j],scale=params[j]*0.05,size=1)
+                p0[i][j] = np.random.normal(loc=params[j],scale=params[j]*0.005,size=1)
         #inbounds = False
         #if (inbounds):
         #    walkers = getwalkers(fres, inits)
@@ -564,6 +564,18 @@ def dofit():
 #posterior
             f4 = corner.corner(samples, labels = params_name, quantiles=[0.16, 0.5, 0.84])
             f4.savefig(f4name, dpi=300)
+
+            f5 = pyplot.figure(figsize=(12,5))
+            ax5 = f5.add_subplot(111)
+            flatsamples = sampler.flatchain
+            for s in flatsamples[np.random.randint(len(samples), size=1000)]:
+                sampley1, sampley2 = func(vars, s)
+                ax5.plot(vars1, sampley1, color='gray', alpha=0.2, linewidth=0.5)
+            ax5.errorbar(vars1, vals1, yerr=evals1, fmt='r.')
+            ax5.set_xlim(1100,1700)
+            f5.savefig("testspec.png", dpi=300)
+
+
 
     return results
 
