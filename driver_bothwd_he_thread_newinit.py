@@ -61,7 +61,11 @@ def wdparams(wave, ps, ifunc):
     #modrad = np.sqrt( (Grav * findM * Msun ) / 10**modg )
     realdist = dist * parsec
     if (ifunc==interpfunc1):
-    	findR_He = interpRo_He(np.array([modg,modT]))[0]
+        #findM_He = interpMo_He(np.array([modg,modT]))[0]
+        #if (findM_He>=0.44):
+            #findR_He = interpRo(np.array([modg,modT]))[0]
+    	#elif (findM_He<0.44):
+        findR_He = interpRo_He(np.array([modg,modT]))[0]
     	modrad = findR_He * Rsun
         if (findR_He==0.):
             print "WE HAVE A PROBLEM"
@@ -69,6 +73,20 @@ def wdparams(wave, ps, ifunc):
     	findR = interpRo(np.array([modg,modT]))[0]
     	modrad = findR * Rsun
     fitflux = ifunc(wdmod)[0] * np.pi * (modrad**2 / realdist**2) 
+    return fitflux
+
+def wdparams3(wave, ps, ifunc):
+    modg, modT, dist = ps
+    realdist = dist * parsec
+    if (ifunc==interpfunc1):
+        findM_He = griddata(temp_all_He, logg_all_He, M_all_He, modT, modg, interp='linear')
+        findR_He = np.sqrt( (Grav * findM_He * Msun ) / 10**modg )
+        modrad = findR_He / Rsun
+    elif (ifunc==interpfunc2):
+        findM = griddata(temp_all, logg_all, M_all, modT, modg, interp='linear')
+        findR = np.sqrt( (Grav * findM * Msun ) / 10**modg )
+        modrad = findR / Rsun
+    fitflux = ifunc(wdmod)[0] * np.pi * (modrad**2.0 / realdist**2.0)
     return fitflux
 
 #NOTE: interpfunc1 and interpfunc2 are defined below
@@ -110,8 +128,8 @@ t_He, logg_He, Mo_He, Ro_He, age = np.loadtxt('../Natalie/mygrid.txt', unpack=Tr
 #t_He, logg_He, Mo_He, Ro_He = np.loadtxt('mygrid.txt', unpack=True)
 temp_He = 10.0**(t_He)
 
-tlist_He = temp_He[0:99]
-glist_He = logg_He[0::100]
+tlist_He = temp_He[0:299]
+glist_He = logg_He[0::300]
 
 tableMo_He = np.zeros([len(glist_He), len(tlist_He)])
 tableRo_He = np.zeros([len(glist_He), len(tlist_He)])
@@ -121,8 +139,8 @@ for i in xrange(0, len(glist_He)):
 		tableMo_He[i][j] = Mo_He[i*(len(tlist_He))+j]
 		tableRo_He[i][j] = Ro_He[i*(len(tlist_He))+j]
 
-interpMo_He = RegularGridInterpolator((glist_He,tlist_He), tableMo_He, bounds_error=False, fill_value=None)
-interpRo_He = RegularGridInterpolator((glist_He,tlist_He), tableRo_He, bounds_error=False, fill_value=None)
+interpMo_He = RegularGridInterpolator((glist_He,tlist_He), tableMo_He, bounds_error=False, fill_value=1e20)
+interpRo_He = RegularGridInterpolator((glist_He,tlist_He), tableRo_He, bounds_error=False, fill_value=1e20)
 
 #read in the BSS data and ...
 
@@ -250,7 +268,7 @@ for i in xrange(0, len(glist)):
                 #line changes this to per A.
 
 interpfunc1 = RegularGridInterpolator((garray,Tarray), modflux1, 
-                                     bounds_error=False, fill_value=None)
+                                     bounds_error=False, fill_value=1e20)
 
 #read in the models for BS2
 for i in xrange(0, len(glist)):
@@ -462,6 +480,9 @@ def dofit():
 #now run emcee
         print "Running emcee ..."
         sampler = emcee.EnsembleSampler(Nwalkers, len(params), lnprob,  args = (args,), threads = Nthreads)
+        for i, result in enumerate(sampler.sample(p0, iterations=Nemcee)):
+            if (i+1) % 100 == 0:
+                print("{0:5.1%}".format(float(i) / Nemcee))
         sampler.reset()
         sampler.run_mcmc(walkers, Nemcee, thin = Nthin)
 
