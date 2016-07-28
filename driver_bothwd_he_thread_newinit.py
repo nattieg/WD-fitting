@@ -11,7 +11,7 @@ from matplotlib import pyplot
 import seaborn
 import multiprocessing as multi
 #Nthreads = multi.cpu_count() - 2
-Nthreads = 4
+Nthreads = 6
 
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator 
@@ -26,7 +26,7 @@ parsec = units.pc.to(units.cm) #3.086e18 #cm
 Grav = 6.6743e-8 #cgs
 
 #these are various contols for the MCMC
-Nemcee = 700
+Nemcee = 800
 Nthin = 5
 Nburn = 25
 Nwalkers = 300
@@ -73,20 +73,6 @@ def wdparams(wave, ps, ifunc):
     	findR = interpRo(np.array([modg,modT]))[0]
     	modrad = findR * Rsun
     fitflux = ifunc(wdmod)[0] * np.pi * (modrad**2 / realdist**2) 
-    return fitflux
-
-def wdparams3(wave, ps, ifunc):
-    modg, modT, dist = ps
-    realdist = dist * parsec
-    if (ifunc==interpfunc1):
-        findM_He = griddata(temp_all_He, logg_all_He, M_all_He, modT, modg, interp='linear')
-        findR_He = np.sqrt( (Grav * findM_He * Msun ) / 10**modg )
-        modrad = findR_He / Rsun
-    elif (ifunc==interpfunc2):
-        findM = griddata(temp_all, logg_all, M_all, modT, modg, interp='linear')
-        findR = np.sqrt( (Grav * findM * Msun ) / 10**modg )
-        modrad = findR / Rsun
-    fitflux = ifunc(wdmod)[0] * np.pi * (modrad**2.0 / realdist**2.0)
     return fitflux
 
 #NOTE: interpfunc1 and interpfunc2 are defined below
@@ -219,7 +205,7 @@ evals2 = data['y2e'] #error on the y axis
 #find the distance constraint
 distcm = dobs #* parsec
 #dobserr is 1sig
-distcmerr = dobserr*3. #* parsec
+distcmerr = dobserr*1.0 #* parsec
 distmin = (distcm - distcmerr) 
 distmax = (distcm + distcmerr) 
 print("This is the minimum distance:")
@@ -268,7 +254,7 @@ for i in xrange(0, len(glist)):
                 #line changes this to per A.
 
 interpfunc1 = RegularGridInterpolator((garray,Tarray), modflux1, 
-                                     bounds_error=False, fill_value=1e20)
+                                     bounds_error=False, fill_value=None)
 
 #read in the models for BS2
 for i in xrange(0, len(glist)):
