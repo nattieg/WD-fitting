@@ -61,11 +61,12 @@ def wdparams(wave, ps, ifunc):
     #modrad = np.sqrt( (Grav * findM * Msun ) / 10**modg )
     realdist = dist * parsec
     if (ifunc==interpfunc1):
+        logmodT = np.log10(modT)
         #findM_He = interpMo_He(np.array([modg,modT]))[0]
         #if (findM_He>=0.44):
             #findR_He = interpRo(np.array([modg,modT]))[0]
     	#elif (findM_He<0.44):
-        findR_He = interpRo_He(np.array([modg,modT]))[0]
+        findR_He = interpRo_He(np.array([modg,logmodT]))[0]
     	modrad = findR_He * Rsun
         if (findR_He==0.):
             print "WE HAVE A PROBLEM"
@@ -84,6 +85,17 @@ def wdparams2(waves, ps):
     fitflux1 = wdparams(wave1, (modg1, modT1, dist), interpfunc1)
     fitflux2 = wdparams(wave2, (modg2, modT2, dist), interpfunc2)
     return fitflux1, fitflux2
+
+def findM(ps):
+    modg, modT = ps
+    mass = griddata((temp, logg), Mo, (modT, modg), method='linear', fill_value=1e20)
+    return mass
+
+def findM_He(ps):
+    modg, modT = ps
+    modT = np.log10(modT)
+    mass_He = griddata((t_He, logg_He), Mo_He, (modT, modg), method='linear', fill_value=1e20)
+    return mass_He
 
 #we're not really fitting radius, radius is defined by log g and temp, we're fitting for distance...
 
@@ -112,9 +124,11 @@ interpRo = RegularGridInterpolator((glist,tlist), tableRo, bounds_error=False, f
 #read in table of He-core WD values:
 t_He, logg_He, Mo_He, Ro_He, age = np.loadtxt('../Natalie/mygrid.txt', unpack=True)
 #t_He, logg_He, Mo_He, Ro_He = np.loadtxt('mygrid.txt', unpack=True)
-temp_He = 10.0**(t_He)
 
-tlist_He = temp_He[0:299]
+#temp_He = 10.0**(t_He)
+temp_He = t_He
+
+tlist_He = temp_He[0:300]
 glist_He = logg_He[0::300]
 
 tableMo_He = np.zeros([len(glist_He), len(tlist_He)])
@@ -125,8 +139,8 @@ for i in xrange(0, len(glist_He)):
 		tableMo_He[i][j] = Mo_He[i*(len(tlist_He))+j]
 		tableRo_He[i][j] = Ro_He[i*(len(tlist_He))+j]
 
-interpMo_He = RegularGridInterpolator((glist_He,tlist_He), tableMo_He, bounds_error=False, fill_value=1e20)
-interpRo_He = RegularGridInterpolator((glist_He,tlist_He), tableRo_He, bounds_error=False, fill_value=1e20)
+interpMo_He = RegularGridInterpolator((glist_He,tlist_He), tableMo_He, bounds_error=False, fill_value=None)
+interpRo_He = RegularGridInterpolator((glist_He,tlist_He), tableRo_He, bounds_error=False, fill_value=None)
 
 #read in the BSS data and ...
 
@@ -600,60 +614,103 @@ if __name__=="__main__":
     logg1 = results[0][0]
     logg1err_plus = results[0][1]
     logg1err_minus = results[0][2]
+    maxlogg1 = logg1 + logg1err_plus
+    minlogg1 = logg1 - logg1err_minus
 
     temp1 = results[1][0]
     temp1err_plus = results[1][1]
     temp1err_minus = results[1][2]
+    maxtemp1 = temp1 + temp1err_plus
+    mintemp1 = temp1 - temp1err_minus
     
     logg2 = results[2][0]
     logg2err_plus = results[2][1]
     logg2err_minus = results[2][2]
+    maxlogg2 = logg2 + logg2err_plus
+    minlogg2 = logg2 - logg2err_minus
     
     temp2 = results[3][0]
     temp2err_plus = results[3][1]
     temp2err_minus = results[3][2]
+    maxtemp2 = temp2 + temp2err_plus
+    mintemp2 = temp2 - temp2err_minus
+
+    logtemp1 = np.log10(temp1)
+    logmaxtemp1 = np.log10(maxtemp1)
+    logmintemp1 = np.log10(mintemp1)
     
-    wd1values = np.array([logg1,temp1])
-    wd1plusval = np.array([( logg1 + logg1err_plus, temp1 + temp1err_plus)])
-    wd1minusval = np.array([( logg1 - logg1err_minus, temp1 - temp1err_minus)])
+    pluslogg1 = logg1 + logg1err_plus
+    minuslogg1 = logg1 - logg1err_minus
+
+    wd1values = np.array([logg1,logtemp1])
+    #wd1plusval = np.array([( logg1 + logg1err_plus, temp1 + temp1err_plus)])
+    wd1plusval = np.array([(maxlogg1, logmaxtemp1)])
+    #wd1minusval = np.array([( logg1 - logg1err_minus, temp1 - temp1err_minus)])
+    wd1minusval = np.array([( minlogg1, logmintemp1)])
     
     wd2values = np.array([logg2,temp2])
-    wd2plusval = np.array([( logg2 + logg2err_plus, temp2 + temp2err_plus)])
-    wd2minusval = np.array([( logg2 - logg2err_minus, temp2 - temp2err_minus)])
+    wd2plusval = np.array([( maxlogg2, maxtemp2)])
+    wd2minusval = np.array([( minlogg2, mintemp2)])
     
     findR1 = interpRo_He(wd1values)[0]
     findR1_plus = interpRo_He(wd1plusval)[0]
     findR1_minus = interpRo_He(wd1minusval)[0]
     
-    findM1 = interpMo_He(wd1values)[0]
-    findM1_plus = interpMo_He(wd1plusval)[0]
-    findM1_minus = interpMo_He(wd1minusval)[0]
-    
+    #findM1 = interpMo_He(wd1values)[0]
+    #findM1_plus = interpMo_He(wd1plusval)[0]
+    #findM1_minus = interpMo_He(wd1minusval)[0]
+
+    #findM1 = findM_He(wd1values)
+    #findM1_plus = findM_He(wd1plusval)
+    #findM1_minus = findM_He(wd1minusval)
+
+    mass_He = griddata((t_He, logg_He), Mo_He, (logtemp1, logg1), method='linear')
+    maxmass_He = griddata((t_He, logg_He), Mo_He, (logmaxtemp1, maxlogg1), method='linear')
+    minmass_He = griddata((t_He, logg_He), Mo_He, (logmintemp1, minlogg1), method='linear')
+
     print "WD1 radius and errors"
     print findR1
     print (findR1 - findR1_plus)
     print (findR1_minus - findR1)
     
     print "WD1 mass and errors"
-    print findM1
-    print (findM1_plus - findM1)
-    print (findM1 - findM1_minus)
+    #print findM1
+    print mass_He
+    #print (findM1_plus - findM1)
+    print (maxmass_He - mass_He)
+    #print (findM1 - findM1_minus)
+    print (mass_He - minmass_He)
     
     findR2 = interpRo(wd2values)[0]
     findR2_plus = interpRo(wd2plusval)[0]
     findR2_minus = interpRo(wd2minusval)[0]
     
-    findM2 = interpMo(wd2values)[0]
-    findM2_plus = interpMo(wd2plusval)[0]
-    findM2_minus = interpMo(wd2minusval)[0]
+    #findM2 = interpMo(wd2values)[0]
+    #findM2_plus = interpMo(wd2plusval)[0]
+    #findM2_minus = interpMo(wd2minusval)[0]
+
+    #findM2 = findM(wd2values)
+    #findM2_plus = findM(wd2plusval)
+    #findM2_minus = findM(wd2minusval)
     
     print "WD2 radius and errors"
     print findR2
     print (findR2 - findR2_plus)
     print (findR2_minus - findR2)
 
+    mass_CO = griddata((temp, logg), Mo, (temp2, logg2), method='linear')
+    maxmass_CO = griddata((temp, logg), Mo, (maxtemp2, maxlogg2), method='linear')
+    minmass_CO = griddata((temp, logg), Mo, (mintemp2, minlogg2), method='linear')
+
     print "WD2 mass and errors"
-    print findM2
-    print (findM2_plus - findM2)
-    print (findM2 - findM2_minus)
+    #print findM1
+    print mass_CO
+    #print (findM1_plus - findM1)
+    print (maxmass_CO - mass_CO)
+    #print (findM1 - findM1_minus)
+    print (mass_CO - minmass_CO)
+    #print "WD2 mass and errors"
+    #print findM2
+    #print (findM2_plus - findM2)
+    #print (findM2 - findM2_minus)
     
