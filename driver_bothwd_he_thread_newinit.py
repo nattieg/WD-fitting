@@ -638,9 +638,6 @@ if __name__=="__main__":
     logtemp1 = np.log10(temp1)
     logmaxtemp1 = np.log10(maxtemp1)
     logmintemp1 = np.log10(mintemp1)
-    
-    pluslogg1 = logg1 + logg1err_plus
-    minuslogg1 = logg1 - logg1err_minus
 
     wd1values = np.array([logg1,logtemp1])
     #wd1plusval = np.array([( logg1 + logg1err_plus, temp1 + temp1err_plus)])
