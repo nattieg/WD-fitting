@@ -1,13 +1,14 @@
 from astropy.io import ascii
 from astropy import units
 import numpy
+from matplotlib import pyplot
+#matplotlib.use('Qt5Agg')
 import corner
 import emcee
 import pylab as plt
 import numpy as np
 import numpy.ma as ma
 from numpy import sum
-from matplotlib import pyplot
 import seaborn
 import multiprocessing as multi
 #Nthreads = multi.cpu_count() - 2
@@ -26,10 +27,10 @@ parsec = units.pc.to(units.cm) #3.086e18 #cm
 Grav = 6.6743e-8 #cgs
 
 #these are various contols for the MCMC
-Nemcee = 800
-Nthin = 5
-Nburn = 25
-Nwalkers = 300
+Nemcee = 1000
+Nthin = 1
+Nburn = 200
+Nwalkers = 500
 bndsprior = True
 #I also set bndsprior = True in MCMCfit.py. 
 
@@ -44,8 +45,12 @@ print "Nthreads = ", Nthreads
 
 
 #Eclipsing binary distance (Meibom+2009)
-dobs = 1770.0 #pc
-dobserr = 75.0
+#dobs = 1770.0 #pc
+#dobserr = 75.0
+
+#Gaia DR2 distance from Christian Knigge:
+dobs = 1942.0 #pc
+dobserr	= 15.0 
 
 # this function interpolates in the WD grid of log g and Teff, then normalizes 
 # based on the radius and distance
@@ -73,6 +78,15 @@ def wdparams(wave, ps, ifunc):
     elif (ifunc==interpfunc2):
     	findR = interpRo(np.array([modg,modT]))[0]
     	modrad = findR * Rsun
+    	#logmodT = np.log10(modT)
+        #findM_He = interpMo_He(np.array([modg,modT]))[0]
+        #if (findM_He>=0.44):
+            #findR_He = interpRo(np.array([modg,modT]))[0]
+    	#elif (findM_He<0.44):
+        #findR_He = interpRo_He(np.array([modg,logmodT]))[0]
+    	#modrad = findR_He * Rsun
+        #if (findR_He==0.):
+        #    print "WE HAVE A PROBLEM"
     fitflux = ifunc(wdmod)[0] * np.pi * (modrad**2 / realdist**2) 
     return fitflux
 
@@ -218,8 +232,12 @@ evals2 = data['y2e'] #error on the y axis
 
 #find the distance constraint
 distcm = dobs #* parsec
-#dobserr is 1sig
-distcmerr = dobserr*1.0 #* parsec
+#f is 1sig
+#distcmerr = dobserr*1.0 #* parsec
+
+#setting arbitrarily large distance error to allow the walkers to explore the posterior space
+distcmerr = dobserr*3.0 #* parsec 
+
 distmin = (distcm - distcmerr) 
 distmax = (distcm + distcmerr) 
 print("This is the minimum distance:")
@@ -236,9 +254,9 @@ params = (7.5, 15600., 7.6, 16600., dobs)
 eparams = (1.0, 1000., 1.0, 1000., dobserr) 
 #distance fit in units of pc 
 #give the parameter names for plotting (can use latex symbols)
-params_name = [r'log$_{10}$(g$_1$)',r'Temp$_1$(K)',r'log$_{10}$(g$_2$)',r'Temp$_2$(K)',r'dist(pc)']
+params_name = [r'log$_{10}$(g$_{5379}$)',r'Temp$_{5379}$(K)',r'log$_{10}$(g$_{4540}$)',r'Temp$_{4540}$(K)',r'dist(pc)']
 #provide bounds on the parameters used to draw the initial guesses and walkers and possibly to limit the priors
-bnds = ( (6., 9.), (14000., 20000.), (6., 9.), (14000., 20000.), (distmin, distmax))
+bnds = ( (6., 9.), (12000., 20000.), (6., 9.), (12000., 20000.), (distmin, distmax))
 
 
 
@@ -307,7 +325,7 @@ ax2.plot(vars2, yval_mi2,'b')
 
 plt.subplots_adjust(hspace = 0.4, top = 0.95, bottom = 0.07, left = 0.15, right = 0.95)
 
-f2.savefig('initial_guess_fit_wd.png')
+f2.savefig('initial_guess_fit_newdist.png')
 
 
 ####################################################################################################
@@ -321,15 +339,15 @@ pr_mi = 50.
 pr_hi = 84.
 #for plots
 doplots = True
-f1name = "walkers_wd2.png"
-f2name = "fit_MCMC_wd2.png"
-f3name = "chains_wd2.png"
-f4name = "posterior_wd2.png"
+f1name = "walkers_newdist.png"
+f2name = "fit_MCMC_newdist.png"
+f3name = "chains_newdist.png"
+f4name = "posterior_newdist.png"
 #f5name = "fit_leastsq_wd2.png"
 #output 
 results = []
 print_posterior = True
-posterior_file = "posterior_wd2.txt"
+posterior_file = "posterior_newdist.txt"
 
 
 #flatten a tuple of tuples into a list
@@ -442,7 +460,7 @@ def plotchains(sampler):
     for i,p in enumerate(params):
         for w in range(sampler.chain.shape[0]):
             ax = pyplot.subplot(subn+i)
-            ax.plot(sampler.chain[w,:,i],color='black', linewidth=2, alpha=0.2)
+            ax.plot(sampler.chain[w,:,i],color='black', linewidth=1, alpha=0.15)
             if (len(params_name) >= i):
                 ax.set_ylabel(params_name[i])
         ax.plot([Nburn,Nburn],[min(flatten(sampler.chain[:,:,i])),max(flatten(sampler.chain[:,:,i]))],'r--', linewidth=2)
@@ -496,7 +514,7 @@ def dofit():
         print "Median and mean acceptance fraction:"
         print(np.median(sampler.acceptance_fraction))
         print(np.mean(sampler.acceptance_fraction))
-        print "Estimated autocorrelation time:"
+        #print "Estimated autocorrelation time:"
         print(sampler.acor)
         for i,p in enumerate(pout):
             name = " "
@@ -594,7 +612,7 @@ def dofit():
                 ax5.plot(vars1, sampley1, color='gray', alpha=0.2, linewidth=0.5)
             ax5.errorbar(vars1, vals1, yerr=evals1, fmt='r.')
             ax5.set_xlim(1100,1700)
-            f5.savefig("testspec.png", dpi=300)
+            f5.savefig("testspec_newdist.png", dpi=300)
 
 
 
