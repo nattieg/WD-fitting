@@ -4,9 +4,14 @@
 #but not these
 !.gitignore
 !driver_bothwd_he.py
-!MCMCfit.py
 !driver_bothwd_he_thread_newinit.py
 !plotWDspec.py
 !plotagehist.py
 !plotmassdist.py
 !plotWDs.py
+!driver_bothwd_he_thread_plummer.py
+!plotWDspec.py
+!plotWDs_plummer.py
+!Plot_PeriodMass.ipynb
+!CO_Age_interp.ipynb
+!Test_He_interp.ipynb

@@ -8,12 +8,14 @@ import numpy as np
 import numpy.ma as ma
 from numpy import sum
 from scipy.optimize import curve_fit
-from scipy.interpolate import RegularGridInterpolator 
+from scipy.interpolate import RegularGridInterpolator
 from scipy.interpolate import RectBivariateSpline
 from scipy.interpolate import griddata
 import sys
 #import seaborn as sns
 from matplotlib import pyplot
+
+from tqdm import tqdm
 
 
 
@@ -26,13 +28,13 @@ parsec = units.pc.to(units.cm) #3.086e18 #cm
 
 #Gaia DR2 distance from Christian Knigge
 dobs = 1942.0 #pc
-dobserr	= 15.0 
+dobserr	= 15.0
 
 #Photometric distance (Sarajedini+2001)
 #dobs = 1940.0 #pc
 #dobserr = 71
 print("Reading in posterior...")
-g1, t1, g2, t2 = np.loadtxt('posterior_setdist.txt', unpack=True)
+g1, t1, g2, t2 = np.loadtxt('posterior_setdist_plummer.txt', unpack=True)
 t1 = np.log10(t1)
 #t2 = np.log10(t2)
 
@@ -45,7 +47,7 @@ print("Creating grids of WD parameters...")
 glist = [7.0, 7.5, 8.0, 8.5, 9.0, 9.5]
 tlist = temp[0:60]
 
-#I think we'll only be looking up either M or R at a time. 
+#I think we'll only be looking up either M or R at a time.
 tableMo = np.zeros([len(glist), len(tlist)])
 tableRo = np.zeros([len(glist), len(tlist)])
 
@@ -85,9 +87,9 @@ radlist2 = np.zeros(len(g2))
 #	Rval1 = interpRo_He(wdvals1)[0]
 #	masslist1[i] = Mval1
 #	radlist1[i] = Rval1
-	
+
 print("Finding corresponding mass and radius values for CO-core WDs...")
-for i in range(0, len(g2)):
+for i in tqdm(range(len(g2))):
 	wdvals2 = np.array([g2[i],t2[i]])
 	Mval2 = interpMo(wdvals2)[0]
 	#Mval2 = interpMo_He(wdvals2)[0]
@@ -106,7 +108,7 @@ zi = griddata((t_He, logg_He), Mo_He, (t1, g1), method='linear')
 zimass = np.array(list(zip(zi)))
 gridmass = zimass.flatten()
 '''
-filename = "massdist_newdist.pdf"
+filename = "massdist_newdist_plummer.pdf"
 
 fsize = 12
 
@@ -135,7 +137,7 @@ pyplot.rc('figure', titlesize=30)  # fontsize of the figure title
 print("Plotting mass histogram for WD 1...")
 
 fig1 = pyplot.figure(figsize=(6,5))
-f1name = "masshist1_setdist.pdf"
+f1name = "masshist1_setdist_plummer.pdf"
 ax1 = fig1.add_subplot(111)
 #ax1 = sns.distplot(masslist1)
 #ax1.hist(masslist1, bins=25)
@@ -161,10 +163,20 @@ print((np.nanpercentile(masslist2, 50, axis=0) - np.nanpercentile(masslist2, 16,
 print((np.nanpercentile(masslist2, 50, axis=0)))
 print((np.nanpercentile(masslist2, 84, axis=0) - np.nanpercentile(masslist2, 50, axis=0)))
 
+print("mass1, .01, .5, .99:")
+print((np.nanpercentile(gridmass, 50, axis=0) - np.nanpercentile(gridmass, 1, axis=0)))
+print((np.nanpercentile(gridmass, 50, axis=0)))
+print((np.nanpercentile(gridmass, 99, axis=0) - np.nanpercentile(gridmass, 50, axis=0)))
+
+print("mass2, .01, .5, .99:")
+print((np.nanpercentile(masslist2, 50, axis=0) - np.nanpercentile(masslist2, 1, axis=0)))
+print((np.nanpercentile(masslist2, 50, axis=0)))
+print((np.nanpercentile(masslist2, 99, axis=0) - np.nanpercentile(masslist2, 50, axis=0)))
+
 print("Plotting mass histogram for WD 2...")
 
 fig2 = pyplot.figure(figsize=(6,5))
-f2name = "masshist2_setdist.pdf"
+f2name = "masshist2_setdist_plummer.pdf"
 ax2 = fig2.add_subplot(111)
 #ax2 = sns.distplot(masslist2)
 ax2.hist(masslist2, bins=25)
